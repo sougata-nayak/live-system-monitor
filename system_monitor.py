@@ -10,7 +10,7 @@ import psutil
 import pyqtgraph as pg
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen,
+    QBrush, QColor, QFont, QFontDatabase, QLinearGradient, QPainter, QPainterPath, QPen,
     QRadialGradient,
 )
 from PySide6.QtWidgets import (
@@ -28,7 +28,8 @@ MUTED = "#8B93A5"
 BLUE, VIOLET, AMBER = "#5EA8FF", "#B28CFF", "#FFB454"
 TEAL, ORANGE = "#3DDBB0", "#FF9A5C"
 YELLOW, PINK = "#FFD166", "#FF6B8A"
-FONT_FAMILIES = ["Inter", "SF Pro Text", "Helvetica Neue", "Segoe UI", "Arial"]
+FONT_FAMILIES = ["Inter", "Segoe UI", "Roboto", "Arial"]  # non-macOS preference order
+_FAMILY = None
 
 
 def rgba(hex_color, alpha):
@@ -59,8 +60,16 @@ def ease_factor(dt: float, tau: float) -> float:
 
 
 def ui_font(size, weight=QFont.Normal):
-    f = QFont()
-    f.setFamilies(FONT_FAMILIES)
+    """macOS: the system font (San Francisco). Elsewhere: first installed family."""
+    global _FAMILY
+    if _FAMILY is None:
+        system = QFontDatabase.systemFont(QFontDatabase.GeneralFont).family()
+        if sys.platform == "darwin":
+            _FAMILY = system
+        else:
+            installed = set(QFontDatabase.families())
+            _FAMILY = next((f for f in FONT_FAMILIES if f in installed), system)
+    f = QFont(_FAMILY)
     f.setPixelSize(size)
     f.setWeight(weight)
     return f
@@ -70,7 +79,7 @@ def ui_font(size, weight=QFont.Normal):
 def style_axis(axis):
     axis.setPen(pg.mkPen(None))
     axis.setTextPen(pg.mkPen(MUTED))
-    axis.setStyle(tickLength=0, tickTextOffset=8, tickFont=ui_font(11))
+    axis.setStyle(tickLength=0, tickTextOffset=8, tickFont=ui_font(13))
 
 
 class UnitAxis(pg.AxisItem):
@@ -81,7 +90,7 @@ class UnitAxis(pg.AxisItem):
     def __init__(self, kind="percent"):
         super().__init__("left")
         self.kind = kind
-        self.setWidth(64)  # fixed width so the plot doesn't jitter as labels change
+        self.setWidth(78)  # fixed width so the plot doesn't jitter as labels change
         self.enableAutoSIPrefix(False)
         style_axis(self)
 
@@ -221,10 +230,10 @@ class Chart(Card):
         self.latest = {n: None for n in self.names}   # most recent (t, v)
         self.disp = {n: None for n in self.names}     # eased head value
 
-        self.legend = label("", 12, MUTED)
+        self.legend = label("", 14, MUTED)
         self.legend.setTextFormat(Qt.RichText)
         head = QHBoxLayout()
-        head.addWidget(label(title, 14, TEXT, QFont.DemiBold))
+        head.addWidget(label(title, 17, TEXT, QFont.DemiBold))
         head.addStretch(1)
         head.addWidget(self.legend)
 
@@ -336,10 +345,10 @@ class CoreBars(QWidget):
             x = col * (col_w + gap_x)
             y = y0 + row * row_h
             v = float(self.disp[i])
-            p.setFont(ui_font(11))
+            p.setFont(ui_font(13))
             p.setPen(QColor(MUTED))
-            p.drawText(QRectF(x, y, 22, row_h), Qt.AlignVCenter | Qt.AlignLeft, str(i))
-            bar = QRectF(x + 26, y + row_h / 2 - 4, col_w - 26 - 44, 8)
+            p.drawText(QRectF(x, y, 24, row_h), Qt.AlignVCenter | Qt.AlignLeft, str(i))
+            bar = QRectF(x + 30, y + row_h / 2 - 4, col_w - 30 - 52, 8)
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(255, 255, 255, 15))
             p.drawRoundedRect(bar, 4, 4)
@@ -348,7 +357,7 @@ class CoreBars(QWidget):
                 p.setBrush(QColor(self.color_for(v)))
                 p.drawRoundedRect(fill, 4, 4)
             p.setPen(QColor(TEXT))
-            p.drawText(QRectF(bar.right() + 6, y, 38, row_h),
+            p.drawText(QRectF(bar.right() + 6, y, 46, row_h),
                        Qt.AlignVCenter | Qt.AlignRight, f"{v:.0f}%")
 
 
@@ -493,9 +502,9 @@ class MainWindow(QWidget):
         cl = QVBoxLayout(core_card)
         cl.setContentsMargins(20, 16, 20, 12)
         ch = QHBoxLayout()
-        ch.addWidget(label("CPU per core", 14, TEXT, QFont.DemiBold))
+        ch.addWidget(label("CPU per core", 17, TEXT, QFont.DemiBold))
         ch.addStretch(1)
-        ch.addWidget(label(f"{self.ncores} logical cores", 12))
+        ch.addWidget(label(f"{self.ncores} logical cores", 14))
         cl.addLayout(ch)
         cl.addWidget(self.cores, 1)
 
