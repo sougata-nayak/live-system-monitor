@@ -6,9 +6,9 @@ Built with Python, PySide6, psutil and pyqtgraph.
 ## Run
 
 ```
-python -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python src/main.py
+python -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/python src/main.py
 ```
 
 ## Where to find things
