@@ -2,20 +2,24 @@
 import time
 from collections import deque
 
+import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QFont, QLinearGradient
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
-from utils.animation import ease_factor
 from config.settings import (
-    HISTORY_RETENTION_MARGIN_SECONDS, HISTORY_SECONDS, SCALE_EASE_SECONDS, VALUE_EASE_SECONDS,
+    HISTORY_RETENTION_MARGIN_SECONDS,
+    HISTORY_SECONDS,
+    SCALE_EASE_SECONDS,
+    VALUE_EASE_SECONDS,
 )
-from utils.formatting import format_percent
-from ui.theme import MUTED, TEXT, with_alpha
 from ui.charts.axes import AxisKind, TimeAxis, UnitAxis
 from ui.components.card import Card
 from ui.components.labels import make_label
+from ui.theme import MUTED, TEXT, with_alpha
+from utils.animation import ease_factor
+from utils.formatting import format_percent
 
 
 class LineChart(Card):
@@ -41,6 +45,9 @@ class LineChart(Card):
         self.committed_points = {name: deque() for name in self.series_names}  # (t, v)
         self.latest_sample = {name: None for name in self.series_names}        # (t, v)
         self.displayed_value = {name: None for name in self.series_names}      # eased head
+        # committed_points as arrays, rebuilt once per sample instead of once per frame.
+        self._point_times = {name: np.empty(0) for name in self.series_names}
+        self._point_values = {name: np.empty(0) for name in self.series_names}
 
         self.legend_label = make_label("", 14, MUTED)
         self.legend_label.setTextFormat(Qt.RichText)
@@ -105,6 +112,8 @@ class LineChart(Card):
             points = self.committed_points[name]
             while points and points[0][0] < now - HISTORY_SECONDS - HISTORY_RETENTION_MARGIN_SECONDS:
                 points.popleft()
+            self._point_times[name] = np.fromiter((t for t, _ in points), float, len(points))
+            self._point_values[name] = np.fromiter((v for _, v in points), float, len(points))
         self._update_legend(values)
 
     def advance_frame(self, now, dt):
@@ -115,14 +124,12 @@ class LineChart(Card):
             if latest is None:
                 continue
             self.displayed_value[name] += (latest[1] - self.displayed_value[name]) * ease
-            xs = [t - now for t, _ in self.committed_points[name]]
-            ys = [v for _, v in self.committed_points[name]]
-            xs.append(0.0)
-            ys.append(self.displayed_value[name])
+            xs = np.append(self._point_times[name] - now, 0.0)
+            ys = np.append(self._point_values[name], self.displayed_value[name])
             curve.setData(xs, ys)
-            visible = [y for x, y in zip(xs, ys) if x >= -HISTORY_SECONDS - 1]
-            if visible:
-                peak = max(peak, max(visible))
+            visible = ys[xs >= -HISTORY_SECONDS - 1]
+            if visible.size:
+                peak = max(peak, float(visible.max()))
         if not self.has_fixed_y_range:
             target = max(self.min_y_top, peak * 1.2)
             self.y_top += (target - self.y_top) * ease_factor(dt, SCALE_EASE_SECONDS)

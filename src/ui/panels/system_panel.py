@@ -2,9 +2,9 @@
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout
 
-from ui.theme import TEXT
 from ui.components.card import Card
 from ui.components.labels import make_label
+from ui.theme import TEXT
 
 _ROW_NAMES = ("RAM", "Swap", "Disk (/)", "Processes", "Uptime")
 _BATTERY_ROW_NAME = "Battery"

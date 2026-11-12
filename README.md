@@ -3,12 +3,22 @@
 A live system monitor (CPU, memory, network, disk) with animated charts.
 Built with Python, PySide6, psutil and pyqtgraph.
 
+![System Monitor screenshot](docs/screenshot.png)
+
 ## Run
 
 ```
 python -m venv venv
 venv/bin/pip install -r requirements.txt
 venv/bin/python src/main.py
+```
+
+## Develop
+
+```
+venv/bin/pip install -r requirements-dev.txt
+venv/bin/pytest              # run all tests
+venv/bin/ruff check .        # lint (add --fix to sort imports etc.)
 ```
 
 ## Where to find things
@@ -34,6 +44,7 @@ src/
     ├── components/       Small building blocks: card, labels, logo, live badge, interval selector
     ├── charts/           Line chart, per-core bars, axis labels
     └── panels/           Dashboard sections: header, KPI tile, CPU per core, system info
+tests/                    pytest: formatting, sampler (fake psutil), offscreen window smoke test
 ```
 
 Common changes:
@@ -47,3 +58,7 @@ Common changes:
 | Change a chart's look or axes        | `src/ui/charts/`                |
 | Change a card, tile or the header    | `src/ui/panels/`, `src/ui/components/` |
 | Change animation speed               | `src/config/settings.py` (easing constants) |
+
+## License
+
+MIT, see [LICENSE](LICENSE).

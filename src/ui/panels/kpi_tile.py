@@ -3,9 +3,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
-from ui.theme import MUTED, TEXT
 from ui.components.card import Card
 from ui.components.labels import make_label
+from ui.theme import MUTED, TEXT
 
 
 class KpiTile(Card):

@@ -13,6 +13,7 @@ class LiveBadge(QWidget):
     def __init__(self):
         super().__init__()
         self.setFixedSize(66, 28)
+        self._font = ui_font(12, QFont.Medium)
 
     def paintEvent(self, _):
         painter = QPainter(self)
@@ -32,5 +33,5 @@ class LiveBadge(QWidget):
         painter.setBrush(QColor(TEAL))
         painter.drawEllipse(center, 3.5, 3.5)
         painter.setPen(QColor(TEAL))
-        painter.setFont(ui_font(12, QFont.Medium))
+        painter.setFont(self._font)
         painter.drawText(QRectF(26, 0, 38, rect.height()), Qt.AlignVCenter | Qt.AlignLeft, "Live")

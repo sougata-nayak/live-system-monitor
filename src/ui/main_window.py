@@ -1,8 +1,13 @@
 """Main window: lays out the panels and connects the services to them."""
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
 
 from config.settings import (
-    APP_NAME, DEFAULT_SAMPLE_INTERVAL_MS, RENDER_INTERVAL_MS, SECTION_SPACING, WINDOW_MIN_SIZE,
+    APP_NAME,
+    DEFAULT_SAMPLE_INTERVAL_MS,
+    RENDER_INTERVAL_MS,
+    SECTION_SPACING,
+    WINDOW_MIN_SIZE,
     WINDOW_SIZE,
 )
 from monitors.models import Snapshot
@@ -92,6 +97,31 @@ class MainWindow(QWidget):
         self.render_loop = RenderLoop(RENDER_INTERVAL_MS, parent=self)
         self.render_loop.frame.connect(self._advance_frame)
         self.render_loop.start()
+
+    # ---- Pause animations while nothing is on screen ------------------------
+    # Sampling keeps running so the chart history stays complete; only drawing stops.
+
+    def _update_render_loop(self):
+        if not hasattr(self, "render_loop"):  # event arrived during __init__
+            return
+        if self.isVisible() and not self.isMinimized():
+            if not self.render_loop.timer.isActive():
+                self.render_loop.start()
+        else:
+            self.render_loop.stop()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._update_render_loop()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self._update_render_loop()
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.WindowStateChange:
+            self._update_render_loop()
 
     def _advance_frame(self, now, dt):
         for chart in self.charts:

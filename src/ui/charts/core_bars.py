@@ -15,6 +15,7 @@ class CoreBars(QWidget):
         self.core_count = core_count
         self.target_loads = np.zeros(core_count)
         self.displayed_loads = np.zeros(core_count)
+        self._label_font = ui_font(13)
         self.setMinimumHeight(max(60, ((core_count + 1) // 2) * 26))
 
     def advance_frame(self, dt):
@@ -38,7 +39,7 @@ class CoreBars(QWidget):
             x = column * (column_width + column_gap)
             y = top + row * row_height
             load = float(self.displayed_loads[i])
-            painter.setFont(ui_font(13))
+            painter.setFont(self._label_font)
             painter.setPen(QColor(MUTED))
             painter.drawText(QRectF(x, y, 24, row_height), Qt.AlignVCenter | Qt.AlignLeft, str(i))
             track = QRectF(x + 30, y + row_height / 2 - 4, column_width - 30 - 52, 8)

@@ -21,6 +21,9 @@ class RenderLoop(QObject):
         self._last_frame_time = time.monotonic()
         self.timer.start()
 
+    def stop(self):
+        self.timer.stop()
+
     def tick(self):
         now = time.monotonic()
         dt = max(now - self._last_frame_time, 1e-3)

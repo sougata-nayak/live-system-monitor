@@ -15,4 +15,7 @@ def read_system_info() -> SystemInfo:
 
 
 def battery_available() -> bool:
-    return bool(hasattr(psutil, "sensors_battery") and psutil.sensors_battery())
+    try:
+        return bool(hasattr(psutil, "sensors_battery") and psutil.sensors_battery())
+    except Exception:
+        return False
