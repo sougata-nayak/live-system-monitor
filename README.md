@@ -26,16 +26,6 @@ venv/bin/pytest              # run all tests
 venv/bin/ruff check .        # lint (add --fix to sort imports etc.)
 ```
 
-## Build a macOS app
-
-```
-venv/bin/pip install -r requirements-dev.txt
-venv/bin/python scripts/build_app.py      # -> dist/System Monitor.app (a few minutes the first time)
-```
-
-Needs the Xcode Command Line Tools (`xcode-select --install`). The app is ad-hoc signed,
-so on another Mac the first launch needs right-click → Open.
-
 ## Where to find things
 
 ```
@@ -61,7 +51,6 @@ src/
     ├── components/       Small building blocks: card, labels, logo, live badge, segmented controls
     ├── charts/           Line chart, hover readout, per-core bars, axis labels
     └── panels/           Dashboard sections: header, KPI tile, CPU per core, system / top processes
-scripts/                  make_icon.py (app icon from the logo), build_app.py (macOS .app)
 tests/                    pytest: formatting, sampler + processes (fake psutil), offscreen window smoke test
 ```
 
