@@ -7,12 +7,14 @@ from config.settings import (
     DEFAULT_SAMPLE_INTERVAL_MS,
     RENDER_INTERVAL_MS,
     SECTION_SPACING,
+    TOP_PROCESS_COUNT,
     WINDOW_MIN_SIZE,
     WINDOW_SIZE,
 )
 from monitors.models import Snapshot
 from monitors.sampler import MetricsSampler
 from monitors.system_info import battery_available, read_system_info
+from services.process_service import ProcessService
 from services.render_loop import RenderLoop
 from services.sampling_service import SamplingService
 from ui.charts.axes import AxisKind
@@ -21,7 +23,7 @@ from ui.components.backdrop import Backdrop
 from ui.panels.core_panel import CorePanel
 from ui.panels.header import Header
 from ui.panels.kpi_tile import KpiTile
-from ui.panels.system_panel import SystemPanel
+from ui.panels.system_panel import VIEW_PROCESSES, SystemPanel
 from ui.theme import AMBER, BLUE, ORANGE, PINK, TEAL, VIOLET, YELLOW, ui_font
 from utils.formatting import format_byte_rate, format_bytes, format_uptime, split_bytes
 
@@ -87,6 +89,12 @@ class MainWindow(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self.backdrop)
 
+        # Top processes: read in the background, only while that view is on screen.
+        # (Created first: sampling below publishes its first snapshot immediately.)
+        self.process_service = ProcessService(TOP_PROCESS_COUNT, parent=self)
+        self.process_service.processes_ready.connect(self.system_panel.set_processes)
+        self.system_panel.view_changed.connect(self._request_processes)
+
         # Services: sampling publishes Snapshots, the render loop publishes frames.
         self.sampling_service = SamplingService(
             MetricsSampler(read_battery=show_battery), DEFAULT_SAMPLE_INTERVAL_MS, parent=self)
@@ -97,6 +105,15 @@ class MainWindow(QWidget):
         self.render_loop = RenderLoop(RENDER_INTERVAL_MS, parent=self)
         self.render_loop.frame.connect(self._advance_frame)
         self.render_loop.start()
+
+    def _request_processes(self, *_):
+        if (self.system_panel.current_view == VIEW_PROCESSES
+                and self.isVisible() and not self.isMinimized()):
+            self.process_service.request()
+
+    def closeEvent(self, event):
+        self.process_service.shutdown()
+        super().closeEvent(event)
 
     # ---- Pause animations while nothing is on screen ------------------------
     # Sampling keeps running so the chart history stays complete; only drawing stops.
@@ -135,6 +152,7 @@ class MainWindow(QWidget):
         self._show_network(snapshot)
         self._show_disk_io(snapshot)
         self._show_system(snapshot)
+        self._request_processes()
 
     def _show_cpu(self, s: Snapshot):
         self.cpu_chart.push_sample({"Total": s.cpu_percent})

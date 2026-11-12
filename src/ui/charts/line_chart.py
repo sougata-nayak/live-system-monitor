@@ -4,7 +4,7 @@ from collections import deque
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QBrush, QFont, QLinearGradient
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
@@ -15,6 +15,7 @@ from config.settings import (
     VALUE_EASE_SECONDS,
 )
 from ui.charts.axes import AxisKind, TimeAxis, UnitAxis
+from ui.charts.hover import ChartHover
 from ui.components.card import Card
 from ui.components.labels import make_label
 from ui.theme import MUTED, TEXT, with_alpha
@@ -81,12 +82,34 @@ class LineChart(Card):
             self.curves[name] = self.plot.plot(
                 [], [], pen=pg.mkPen(color, width=2), **fill_options)
 
+        # Hover readout. The plot ignores mouse drags/zoom but still reports movement.
+        self.hover = ChartHover(self.plot, series, self.format_value)
+        self._frame_data = {}  # name -> (xs, ys) as last drawn, for the hover readout
+        self.plot.scene().sigMouseMoved.connect(self._on_mouse_moved)
+        self.plot.setMouseTracking(True)
+        self.plot.viewport().setMouseTracking(True)
+        self.plot.viewport().installEventFilter(self)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 16, 14, 10)
         layout.setSpacing(8)
         layout.addLayout(header)
         layout.addWidget(self.plot, 1)
         self._update_legend({})
+
+    def _on_mouse_moved(self, scene_pos):
+        view_box = self.plot.plotItem.vb
+        if view_box.sceneBoundingRect().contains(scene_pos):
+            self.hover.mouse_x = view_box.mapSceneToView(scene_pos).x()
+        else:
+            self.hover.mouse_x = None
+        self.hover.update(self._frame_data)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Leave:
+            self.hover.mouse_x = None
+            self.hover.update(self._frame_data)
+        return super().eventFilter(watched, event)
 
     def _set_y_range(self, top):
         self.plot.setYRange(-top * 0.05, top * 1.05, padding=0)
@@ -127,6 +150,7 @@ class LineChart(Card):
             xs = np.append(self._point_times[name] - now, 0.0)
             ys = np.append(self._point_values[name], self.displayed_value[name])
             curve.setData(xs, ys)
+            self._frame_data[name] = (xs, ys)
             visible = ys[xs >= -HISTORY_SECONDS - 1]
             if visible.size:
                 peak = max(peak, float(visible.max()))
@@ -134,3 +158,5 @@ class LineChart(Card):
             target = max(self.min_y_top, peak * 1.2)
             self.y_top += (target - self.y_top) * ease_factor(dt, SCALE_EASE_SECONDS)
             self._set_y_range(self.y_top)
+        if self.hover.mouse_x is not None:
+            self.hover.update(self._frame_data)

@@ -13,7 +13,10 @@ HISTORY_RETENTION_MARGIN_SECONDS = 5
 SAMPLE_INTERVAL_OPTIONS = (("0.5 s", 500), ("1 s", 1000), ("2 s", 2000), ("5 s", 5000))
 DEFAULT_SAMPLE_INTERVAL_MS = 1000
 
-# Rendering: ~60 fps, independent of the sampling interval.
+# Top processes view: how many rows (refreshed with each sample while the view is shown).
+TOP_PROCESS_COUNT = 6
+
+# Rendering:~60 fps, independent of the sampling interval.
 RENDER_INTERVAL_MS = 16
 
 # Animation easing time constants (seconds).

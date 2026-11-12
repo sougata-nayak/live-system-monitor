@@ -15,6 +15,13 @@ class ByteRates(NamedTuple):
     second: float
 
 
+class ProcessInfo(NamedTuple):
+    pid: int
+    name: str
+    cpu_percent: float   # 100 = one full core, like Activity Monitor
+    memory_bytes: int    # resident memory (RSS)
+
+
 class BatteryReading(NamedTuple):
     percent: float
     plugged_in: bool
